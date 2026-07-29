@@ -12,8 +12,13 @@ app.get('/health', (_req, res) => {
 
 // GET /tasks — list all tasks
 app.get('/tasks', async (_req, res) => {
-  const { rows } = await db.query('SELECT * FROM tasks ORDER BY created_at ASC');
-  res.json(rows);
+  try {
+    const { rows } = await db.query('SELECT * FROM tasks ORDER BY created_at ASC');
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /tasks failed:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // POST /tasks — create a task
@@ -22,11 +27,16 @@ app.post('/tasks', async (req, res) => {
   if (!title || typeof title !== 'string' || !title.trim()) {
     return res.status(400).json({ error: 'title is required' });
   }
-  const { rows } = await db.query(
-    'INSERT INTO tasks (title) VALUES ($1) RETURNING *',
-    [title.trim()]
-  );
-  res.status(201).json(rows[0]);
+  try {
+    const { rows } = await db.query(
+      'INSERT INTO tasks (title) VALUES ($1) RETURNING *',
+      [title.trim()]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('POST /tasks failed:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // PATCH /tasks/:id — update a task (complete/uncomplete or rename)
@@ -34,18 +44,23 @@ app.patch('/tasks/:id', async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const { completed, title } = req.body;
 
-  const { rows } = await db.query('SELECT * FROM tasks WHERE id = $1', [id]);
-  if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+  try {
+    const { rows } = await db.query('SELECT * FROM tasks WHERE id = $1', [id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
 
-  const current = rows[0];
-  const newCompleted = completed !== undefined ? Boolean(completed) : current.completed;
-  const newTitle = title !== undefined ? title.trim() : current.title;
+    const current = rows[0];
+    const newCompleted = completed !== undefined ? Boolean(completed) : current.completed;
+    const newTitle = title !== undefined ? title.trim() : current.title;
 
-  const { rows: updated } = await db.query(
-    'UPDATE tasks SET completed = $1, title = $2 WHERE id = $3 RETURNING *',
-    [newCompleted, newTitle, id]
-  );
-  res.json(updated[0]);
+    const { rows: updated } = await db.query(
+      'UPDATE tasks SET completed = $1, title = $2 WHERE id = $3 RETURNING *',
+      [newCompleted, newTitle, id]
+    );
+    res.json(updated[0]);
+  } catch (err) {
+    console.error(`PATCH /tasks/${id} failed:`, err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 app.listen(PORT, () => {

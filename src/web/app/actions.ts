@@ -19,19 +19,31 @@ export async function getTasks(): Promise<Task[]> {
 
 export async function createTask(formData: FormData) {
   const title = formData.get('title') as string;
-  await fetch(`${API_URL}/tasks`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title }),
-  });
+  try {
+    const res = await fetch(`${API_URL}/tasks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title }),
+    });
+    if (!res.ok) throw new Error(`API responded with status ${res.status}`);
+  } catch (err) {
+    console.error('createTask failed:', err);
+    throw new Error('Failed to create task');
+  }
   revalidatePath('/');
 }
 
 export async function toggleTask(id: number, completed: boolean) {
-  await fetch(`${API_URL}/tasks/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ completed }),
-  });
+  try {
+    const res = await fetch(`${API_URL}/tasks/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completed }),
+    });
+    if (!res.ok) throw new Error(`API responded with status ${res.status}`);
+  } catch (err) {
+    console.error(`toggleTask(${id}) failed:`, err);
+    throw new Error('Failed to update task');
+  }
   revalidatePath('/');
 }
