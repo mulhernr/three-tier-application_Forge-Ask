@@ -6,7 +6,13 @@ const PORT = process.env.PORT || 3001;
 
 app.use(express.json());
 
+// Legacy health check
 app.get('/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// GET /api/health — API health check
+app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
@@ -48,6 +54,11 @@ app.patch('/tasks/:id', async (req, res) => {
   res.json(updated[0]);
 });
 
-app.listen(PORT, () => {
-  console.log(`API listening on port ${PORT}`);
-});
+// Only start the server when this file is run directly (not during tests)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`API listening on port ${PORT}`);
+  });
+}
+
+module.exports = app;
